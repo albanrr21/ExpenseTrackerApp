@@ -30,4 +30,9 @@ export const theme = {
     shadowRadius: 10,
     elevation: 5,
   }),
+  gradients: {
+    background: ["#121212", "#1E1E1E"],
+    primary: ["#00E5FF", "#00B8D4"],
+    card: ["rgba(30, 30, 30, 0.9)", "rgba(30, 30, 30, 0.6)"],
+  },
 };

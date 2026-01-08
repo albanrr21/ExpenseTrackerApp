@@ -44,7 +44,7 @@ export const ExpenseProvider = ({ children }) => {
     const newExpense = {
       ...expense,
       id: Date.now().toString(),
-      date: new Date().toISOString(),
+      date: expense.date || new Date().toISOString(),
     };
     setExpenses((prev) => [newExpense, ...prev]);
   };

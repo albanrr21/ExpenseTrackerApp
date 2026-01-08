@@ -1,14 +1,5 @@
 import React from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  ActivityIndicator,
-  Keyboard,
-  TouchableWithoutFeedback,
-  ScrollView,
-  StatusBar,
-} from "react-native";
+import { StyleSheet, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   NavigationContainer,
@@ -16,85 +7,27 @@ import {
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ExpenseProvider, useExpenses } from "./src/context/ExpenseContext";
-import ExpenseForm from "./src/components/ExpenseForm";
-import ExpenseList from "./src/components/ExpenseList";
-import SpendingChart from "./src/components/SpendingChart";
+import { ExpenseProvider } from "./src/context/ExpenseContext";
+import DashboardScreen from "./src/screens/DashboardScreen";
+import AddExpenseScreen from "./src/screens/AddExpenseScreen";
+import HistoryScreen from "./src/screens/HistoryScreen";
 import { theme } from "./src/constants/theme";
 
 const Tab = createBottomTabNavigator();
 
 const CustomTheme = {
-  ...NavigationDarkTheme, // Start with React Navigation's default Dark Theme structure
+  ...NavigationDarkTheme,
   colors: {
     ...NavigationDarkTheme.colors,
-    // Override with our futuristic colors
     background: theme.colors.background,
     card: theme.colors.surface,
     text: theme.colors.textPrimary,
-    primary: theme.colors.primary, // Used by navigators for active elements
+    primary: theme.colors.primary,
     border: "rgba(255, 255, 255, 0.1)",
   },
-  // By spreading NavigationDarkTheme, we ensure internal properties like 'medium'
-  // which relate to default fonts are defined, solving the TypeError.
 };
 
-// 1. Helper Component for Keyboard Dismiss
-const DismissKeyboardView = ({ children, style }) => (
-  <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-    <View style={style}>{children}</View>
-  </TouchableWithoutFeedback>
-);
-
-// Helper Component for Loading State
-const LoadingIndicator = () => (
-  <View style={styles.loadingContainer}>
-    <ActivityIndicator size='large' color={theme.colors.primary} />
-    <Text style={styles.loadingText}>Loading data...</Text>
-  </View>
-);
-
-// 2. Screen Components (wrapped for clean navigation)
-
-function DashboardScreen() {
-  const { isLoading } = useExpenses();
-  return (
-    <SafeAreaView style={styles.screen} edges={["left", "right", "top"]}>
-      {isLoading ? <LoadingIndicator /> : <SpendingChart />}
-    </SafeAreaView>
-  );
-}
-
-function AddExpenseScreen() {
-  return (
-    <SafeAreaView style={styles.screen} edges={["left", "right", "top"]}>
-      <DismissKeyboardView style={styles.screenContent}>
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps='always'>
-          <ExpenseForm />
-        </ScrollView>
-      </DismissKeyboardView>
-    </SafeAreaView>
-  );
-}
-
-function HistoryScreen() {
-  const { isLoading } = useExpenses();
-  return (
-    <SafeAreaView style={styles.screen} edges={["left", "right", "top"]}>
-      <DismissKeyboardView style={{ flex: 1 }}>
-        <View style={styles.screenContent}>
-          {isLoading ? <LoadingIndicator /> : <ExpenseList />}
-        </View>
-      </DismissKeyboardView>
-    </SafeAreaView>
-  );
-}
-
-// 3. Main App Component
 function AppTabs() {
   return (
     <Tab.Navigator
@@ -145,22 +78,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  screenContent: {
-    flex: 1,
-    paddingHorizontal: 10,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    color: theme.colors.textSecondary,
-    marginTop: 10,
   },
 });

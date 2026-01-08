@@ -10,14 +10,19 @@ import {
   ScrollView,
 } from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
+import Animated, { FadeInDown, Layout } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 import { useExpenses } from "../context/ExpenseContext";
 import { theme } from "../constants/theme";
 
 const categories = ["all", ...Object.keys(theme.colors.categories)];
 const categoryKeys = Object.keys(theme.colors.categories);
 
+
+
+
 const ExpenseList = () => {
-  const { expenses, deleteExpense, updateExpense } = useExpenses(); // Get updateExpense
+  const { expenses, deleteExpense, updateExpense } = useExpenses();
   const [filter, setFilter] = useState("all");
 
   // New States for Editing
@@ -35,10 +40,11 @@ const ExpenseList = () => {
   // --- EDITING LOGIC ---
 
   const startEdit = (expense) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditingId(expense.id);
     setEditingExpense({
       title: expense.title,
-      amount: expense.amount.toString(), // Convert to string for TextInput
+      amount: expense.amount.toString(),
       category: expense.category,
     });
   };
@@ -62,6 +68,7 @@ const ExpenseList = () => {
     const finalAmount = parseFloat(editingExpense.amount);
 
     if (!editingExpense.title || isNaN(finalAmount) || finalAmount <= 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         "Invalid Input",
         "Please enter a valid title and amount greater than 0."
@@ -74,7 +81,13 @@ const ExpenseList = () => {
       amount: finalAmount,
       category: editingExpense.category,
     });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     cancelEdit();
+  };
+
+  const handleDelete = (id) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    deleteExpense(id);
   };
 
   // --- RENDERING ACTIONS ---
@@ -83,19 +96,22 @@ const ExpenseList = () => {
     return (
       <TouchableOpacity
         style={styles.deleteButton}
-        onPress={() => deleteExpense(id)}>
+        onPress={() => handleDelete(id)}>
         <Text style={styles.deleteText}>DELETE</Text>
       </TouchableOpacity>
     );
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const catColor = theme.colors.categories[item.category];
 
     if (editingId === item.id) {
       // Render Edit Form
       return (
-        <View style={[styles.card, styles.editCard]}>
+        <Animated.View
+          entering={FadeInDown.delay(index * 50)}
+          layout={Layout.springify()}
+          style={[styles.card, styles.editCard]}>
           <TextInput
             style={styles.editInput}
             value={editingExpense.title}
@@ -133,9 +149,10 @@ const ExpenseList = () => {
                       ...theme.glow(chipColor),
                     },
                   ]}
-                  onPress={() =>
-                    setEditingExpense((prev) => ({ ...prev, category: cat }))
-                  }>
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setEditingExpense((prev) => ({ ...prev, category: cat }));
+                  }}>
                   <Text
                     style={[
                       styles.chipText,
@@ -161,37 +178,48 @@ const ExpenseList = () => {
               <Text style={styles.saveText}>SAVE</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       );
     }
 
     // Render Display Card
     return (
-      <Swipeable renderRightActions={() => renderRightActions(item.id)}>
-        <TouchableOpacity style={styles.card} onPress={() => startEdit(item)}>
-          <View
-            style={[
-              styles.categoryIndicator,
-              { backgroundColor: catColor, ...theme.glow(catColor) },
-            ]}
-          />
-          <View style={styles.cardContent}>
-            <View>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={[styles.cardCategory, { color: catColor }]}>
-                {item.category.toUpperCase()}
-              </Text>
+      <Animated.View
+        entering={FadeInDown.delay(index * 50)}
+        layout={Layout.springify()}>
+        <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+          <TouchableOpacity style={styles.card} onPress={() => startEdit(item)}>
+            <View
+              style={[
+                styles.categoryIndicator,
+                { backgroundColor: catColor, ...theme.glow(catColor) },
+              ]}
+            />
+            <View style={styles.cardContent}>
+              <View>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={[styles.cardCategory, { color: catColor }]}>
+                  {item.category.toUpperCase()}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.cardAmount}>
+                  -${item.amount.toFixed(2)}
+                </Text>
+                <Text style={styles.cardDate}>
+                  {new Date(item.date).toLocaleDateString()}
+                </Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.cardAmount}>-${item.amount.toFixed(2)}</Text>
-              <Text style={styles.cardDate}>
-                {new Date(item.date).toLocaleDateString()}
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Swipeable>
+          </TouchableOpacity>
+        </Swipeable>
+      </Animated.View>
     );
+  };
+
+  const handleFilterChange = (item) => {
+    Haptics.selectionAsync();
+    setFilter(item);
   };
 
   return (
@@ -217,7 +245,7 @@ const ExpenseList = () => {
                     borderColor: activeColor,
                   },
                 ]}
-                onPress={() => setFilter(item)}>
+                onPress={() => handleFilterChange(item)}>
                 <Text
                   style={[
                     styles.chipText,
@@ -245,6 +273,9 @@ const ExpenseList = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No expenses found.</Text>
+        }
       />
     </View>
   );
@@ -294,6 +325,12 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+  },
+  emptyText: {
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginTop: 20,
+    fontStyle: "italic",
   },
   // --- CARD DISPLAY STYLES ---
   card: {
